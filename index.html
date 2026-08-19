@@ -812,100 +812,43 @@
     <form id="vehicleForm" class="form-grid">
       <div class="form-row">
         <label class="field">
-          Үйлдвэрлэгч
-          <input id="vehicleMake" placeholder="BYD" value="BYD" />
+          Улс
+          <select id="vehicleCountry">
+            <option value="">— Улс сонгох —</option>
+          </select>
         </label>
         <label class="field">
-          Загвар
-          <input id="vehicleModel" placeholder="Song Plus DM-i" value="Song Plus DM-i" />
+          Үйлдвэрлэгч
+          <select id="vehicleMakeSelect" disabled>
+            <option value="">Эхлээд улс сонгоно уу</option>
+          </select>
         </label>
-      </div>
-
-      <div>
-        <div style="font-size:12px;font-weight:900;color:#475569;margin-bottom:7px;">Үндсэн цэнэглэх оролт</div>
-        <div class="connector-choice">
-          <div>
-            <input type="radio" name="connector" id="connectorGbtAc" value="GBT_AC" />
-            <label for="connectorGbtAc">
-              <strong>GB/T AC</strong>
-              <span>AC удаан/ердийн цэнэглэлт</span>
-            </label>
-          </div>
-          <div>
-            <input type="radio" name="connector" id="connectorGbtDc" value="GBT_DC" checked />
-            <label for="connectorGbtDc">
-              <strong>GB/T DC</strong>
-              <span>DC хурдан цэнэглэлт</span>
-            </label>
-          </div>
-          <div>
-            <input type="radio" name="connector" id="connectorCcs2" value="CCS2" />
-            <label for="connectorCcs2">
-              <strong>CCS2</strong>
-              <span>Европ DC хурдан цэнэглэлт</span>
-            </label>
-          </div>
-          <div>
-            <input type="radio" name="connector" id="connectorType2" value="TYPE2" />
-            <label for="connectorType2">
-              <strong>Type 2</strong>
-              <span>Европ AC цэнэглэлт</span>
-            </label>
-          </div>
-          <div>
-            <input type="radio" name="connector" id="connectorCcs1" value="CCS1" />
-            <label for="connectorCcs1">
-              <strong>CCS1</strong>
-              <span>Хойд Америк DC хурдан цэнэглэлт</span>
-            </label>
-          </div>
-          <div>
-            <input type="radio" name="connector" id="connectorType1" value="TYPE1" />
-            <label for="connectorType1">
-              <strong>Type 1 (J1772)</strong>
-              <span>Хойд Америк AC цэнэглэлт</span>
-            </label>
-          </div>
-          <div>
-            <input type="radio" name="connector" id="connectorChademo" value="CHADEMO" />
-            <label for="connectorChademo">
-              <strong>CHAdeMO</strong>
-              <span>Япон DC хурдан цэнэглэлт</span>
-            </label>
-          </div>
-        </div>
       </div>
 
       <div class="form-row">
         <label class="field">
-          Цэнэглэх төрөл
-          <select id="vehicleMode">
-            <option value="DC" selected>DC</option>
-            <option value="AC">AC</option>
+          Марк / загвар
+          <select id="vehicleModelSelect" disabled>
+            <option value="">Эхлээд үйлдвэрлэгч сонгоно уу</option>
           </select>
         </label>
         <label class="field">
-          Машины max power (kW)
-          <input id="vehicleMaxPower" type="number" min="1" step="0.1" value="18" />
+          Үйлдвэрлэсэн он
+          <select id="vehicleYearSelect" disabled>
+            <option value="">Эхлээд загвар сонгоно уу</option>
+          </select>
         </label>
       </div>
 
-      <label class="field">
-        Баталгаатай адаптер
-        <select id="vehicleAdapter">
-          <option value="">Байхгүй / мэдэхгүй</option>
-          <option value="CCS2_TO_GBT_DC">CCS2 → GB/T DC</option>
-          <option value="TYPE2_TO_GBT_AC">Type 2 → GB/T AC</option>
-        </select>
-      </label>
+      <div class="info-note" id="vehicleConnectorPreview" hidden></div>
 
       <div class="info-note">
-        “GB/T” гэж ерөнхий нэр бичигдсэн, AC/DC төрөл нь тодорхойгүй, эсвэл протокол/хүчдэлийн мэдээлэл дутуу бол систем нийцтэй гэж таамаглахгүй — <strong>UNKNOWN</strong> гэж харуулна.
+        Улс, үйлдвэрлэгч, загварт үндэслэн тухайн зах зээлийн ердийн стандарт connector-ыг систем автоматаар тодорхойлно. Энэ бол <strong>тооцоолол</strong> — таны бодит машины connector үүнээс ялгаатай байвал "Мэдээлэл засах" товчоор бидэнд мэдэгдээрэй.
       </div>
 
       <div class="modal-actions">
         <button class="secondary-btn" type="button" id="clearVehicleButton">Цэвэрлэх</button>
-        <button class="primary-btn" type="submit">Машинаа хадгалах</button>
+        <button class="primary-btn" type="submit" id="saveVehicleButton" disabled>Машинаа хадгалах</button>
       </div>
     </form>
   </section>
@@ -1295,6 +1238,211 @@
   };
 
   // ---------------------------------------------------------------------------
+  // Vehicle database: Улс -> Үйлдвэрлэгч -> Загварууд.
+  // Загвар бүр: [нэр, төрөл(EV/PHEV/EREV), ойролцоо max цэнэглэх чадал(kW), DC дэмждэг эсэх(заавал биш)]
+  // Connector нь загвар тус бүрээр биш, тухайн улсын зах зээлийн ердийн стандартаар
+  // тодорхойлогддог тул энэ бол БАТАЛГААТАЙ бус, ТООЦООЛСОН мэдээлэл.
+  // ---------------------------------------------------------------------------
+  const VEHICLE_DB = {
+    "Хятад": { ac: "GBT_AC", dc: "GBT_DC", makes: {
+      "BYD": [["Dolphin", "EV", 60], ["Atto 3 (Yuan Plus)", "EV", 80], ["Seal", "EV", 150], ["Han EV", "EV", 120], ["Tang EV", "EV", 110], ["Song Plus DM-i", "PHEV", 7], ["Song Plus EV", "EV", 90], ["Qin Plus DM-i", "PHEV", 6.6]],
+      "Great Wall / ORA": [["Good Cat", "EV", 60], ["Lightning Cat", "EV", 80], ["WEY Coffee 01", "PHEV", 7]],
+      "Chery": [["Omoda E5", "EV", 80], ["Arrizo e", "EV", 60], ["Fengyun PHEV", "PHEV", 6.6]],
+      "GAC Aion": [["Aion S", "EV", 80], ["Aion Y", "EV", 80], ["Aion V", "EV", 100], ["Hyper GT", "EV", 150]],
+      "Geely": [["Geometry C", "EV", 80], ["Geometry A", "EV", 60], ["Galaxy L7", "PHEV", 7]],
+      "Zeekr": [["001", "EV", 150], ["X", "EV", 100], ["007", "EV", 150]],
+      "NIO": [["ET5", "EV", 130], ["ES6", "EV", 130], ["ET7", "EV", 150]],
+      "XPeng": [["P7", "EV", 150], ["G6", "EV", 150], ["G9", "EV", 150]],
+      "Li Auto": [["L7", "EREV", 80], ["L8", "EREV", 80], ["L9", "EREV", 80], ["MEGA", "EREV", 120]],
+      "Voyah": [["Free", "EREV", 80], ["Dreamer", "EREV", 80]],
+      "Hongqi": [["E-HS9", "EV", 120], ["E-QM5", "EV", 80]],
+      "Changan / Deepal": [["Deepal S7", "EREV", 90], ["Lumin", "EV", 30]],
+      "SAIC / MG": [["MG4 EV", "EV", 90], ["MG ZS EV", "EV", 76], ["MG EP EV", "EV", 76]],
+      "Dongfeng": [["eπ007", "EV", 120], ["Nammi 01", "EV", 60]],
+      "Leapmotor": [["C11", "EV", 84], ["T03", "EV", 36]],
+      "Wuling": [["Hongguang Mini EV", "EV", 20], ["Bingo", "EV", 30]]
+    }},
+    "Япон": { ac: "TYPE1", dc: "CHADEMO", makes: {
+      "Toyota": [["Prius PHV", "PHEV", 3.3, false], ["RAV4 PHV", "PHEV", 6.6, false], ["bZ4X", "EV", 150], ["Corolla Cross PHEV", "PHEV", 6.6, false]],
+      "Nissan": [["Leaf", "EV", 50], ["Ariya", "EV", 130]],
+      "Honda": [["Honda e", "EV", 50], ["e:NS1", "EV", 80], ["CR-V e:PHEV", "PHEV", 6.6, false]],
+      "Mitsubishi": [["Outlander PHEV", "PHEV", 22, true], ["eK X EV", "EV", 30]],
+      "Lexus": [["RZ 450e", "EV", 150], ["NX 450h+", "PHEV", 6.6, false]],
+      "Mazda": [["MX-30 EV", "EV", 50]],
+      "Subaru": [["Solterra", "EV", 150]]
+    }},
+    "Өмнөд Солонгос": { ac: "TYPE1", dc: "CCS1", makes: {
+      "Hyundai": [["Ioniq 5", "EV", 220], ["Ioniq 6", "EV", 220], ["Kona Electric", "EV", 100], ["Santa Fe PHEV", "PHEV", 6.6, false]],
+      "Kia": [["EV6", "EV", 220], ["Niro EV", "EV", 80], ["Niro PHEV", "PHEV", 6.6, false], ["Sorento PHEV", "PHEV", 6.6, false]],
+      "Genesis": [["GV60", "EV", 220], ["Electrified G80", "EV", 220], ["Electrified GV70", "EV", 220]]
+    }},
+    "АНУ": { ac: "TYPE1", dc: "CCS1", makes: {
+      "Tesla": [["Model 3", "EV", 170], ["Model Y", "EV", 170], ["Model S", "EV", 250], ["Model X", "EV", 250]],
+      "Ford": [["Mustang Mach-E", "EV", 150], ["F-150 Lightning", "EV", 150], ["Escape PHEV", "PHEV", 3.3, false]],
+      "Chevrolet": [["Bolt EV", "EV", 55], ["Bolt EUV", "EV", 55]],
+      "Jeep": [["Wrangler 4xe", "PHEV", 7.2, false], ["Grand Cherokee 4xe", "PHEV", 7.2, false]],
+      "Rivian": [["R1T", "EV", 200], ["R1S", "EV", 200]],
+      "Cadillac": [["Lyriq", "EV", 190]],
+      "Lucid": [["Air", "EV", 300]]
+    }},
+    "Герман": { ac: "TYPE2", dc: "CCS2", makes: {
+      "BMW": [["iX", "EV", 195], ["i4", "EV", 200], ["i7", "EV", 195], ["X5 xDrive45e", "PHEV", 7.4, false], ["330e", "PHEV", 7.4, false]],
+      "Mercedes-Benz": [["EQS", "EV", 200], ["EQE", "EV", 170], ["EQB", "EV", 100], ["GLC 300e", "PHEV", 7.4, false]],
+      "Audi": [["Q4 e-tron", "EV", 135], ["e-tron GT", "EV", 270], ["Q5 TFSI e", "PHEV", 7.4, false]],
+      "Volkswagen": [["ID.4", "EV", 135], ["ID.3", "EV", 120], ["Passat GTE", "PHEV", 7.4, false]],
+      "Porsche": [["Taycan", "EV", 270], ["Cayenne E-Hybrid", "PHEV", 7.4, false], ["Panamera E-Hybrid", "PHEV", 7.4, false]]
+    }}
+  };
+
+  const VEHICLE_TYPE_LABEL = { EV: "Цахилгаан (EV)", PHEV: "Гибрид (PHEV)", EREV: "Уртасгасан цэнэгтэй (EREV)" };
+
+  function inferAdapterId(connector, mode) {
+    if (mode === "DC" && connector === "GBT_DC") return "CCS2_TO_GBT_DC";
+    if (mode === "AC" && connector === "GBT_AC") return "TYPE2_TO_GBT_AC";
+    return null;
+  }
+
+  function buildVehicleInfo(countryName, makeName, modelEntry, year) {
+    const country = VEHICLE_DB[countryName];
+    const [name, type, maxPowerKw, dcOverride] = modelEntry;
+    const hasDC = dcOverride !== undefined ? dcOverride : type !== "PHEV";
+    const acConnector = country.ac;
+    const dcConnector = hasDC ? country.dc : null;
+    return {
+      country: countryName,
+      make: makeName,
+      model: name,
+      type,
+      year: year || null,
+      maxPowerKw,
+      acConnector,
+      dcConnector,
+      acAdapterId: inferAdapterId(acConnector, "AC"),
+      dcAdapterId: dcConnector ? inferAdapterId(dcConnector, "DC") : null
+    };
+  }
+
+  let selectedVehicleInfo = null;
+
+  function fillSelect(selectEl, options, placeholder) {
+    selectEl.innerHTML = "";
+    const ph = document.createElement("option");
+    ph.value = "";
+    ph.textContent = placeholder;
+    selectEl.appendChild(ph);
+    options.forEach(opt => {
+      const o = document.createElement("option");
+      o.value = opt.value;
+      o.textContent = opt.label;
+      selectEl.appendChild(o);
+    });
+  }
+
+  function populateVehicleCountries() {
+    fillSelect(
+      els.vehicleCountry,
+      Object.keys(VEHICLE_DB).map(c => ({ value: c, label: c })),
+      "— Улс сонгох —"
+    );
+  }
+
+  function resetVehicleSelectFrom(level) {
+    if (level <= 2) {
+      fillSelect(els.vehicleMakeSelect, [], "Эхлээд улс сонгоно уу");
+      els.vehicleMakeSelect.disabled = true;
+    }
+    if (level <= 3) {
+      fillSelect(els.vehicleModelSelect, [], "Эхлээд үйлдвэрлэгч сонгоно уу");
+      els.vehicleModelSelect.disabled = true;
+    }
+    if (level <= 4) {
+      fillSelect(els.vehicleYearSelect, [], "Эхлээд загвар сонгоно уу");
+      els.vehicleYearSelect.disabled = true;
+    }
+    selectedVehicleInfo = null;
+    els.vehicleConnectorPreview.hidden = true;
+    els.saveVehicleButton.disabled = true;
+  }
+
+  function onVehicleCountryChange() {
+    const countryName = els.vehicleCountry.value;
+    resetVehicleSelectFrom(2);
+    if (!countryName) return;
+    const makes = Object.keys(VEHICLE_DB[countryName].makes).sort((a, b) => a.localeCompare(b, "mn"));
+    fillSelect(els.vehicleMakeSelect, makes.map(m => ({ value: m, label: m })), "— Үйлдвэрлэгч сонгох —");
+    els.vehicleMakeSelect.disabled = false;
+  }
+
+  function onVehicleMakeChange() {
+    const countryName = els.vehicleCountry.value;
+    const makeName = els.vehicleMakeSelect.value;
+    resetVehicleSelectFrom(3);
+    if (!countryName || !makeName) return;
+    const models = VEHICLE_DB[countryName].makes[makeName];
+    fillSelect(
+      els.vehicleModelSelect,
+      models.map((m, i) => ({ value: String(i), label: `${m[0]} — ${VEHICLE_TYPE_LABEL[m[1]] || m[1]}` })),
+      "— Марк, загвар сонгох —"
+    );
+    els.vehicleModelSelect.disabled = false;
+  }
+
+  function onVehicleModelChange() {
+    const countryName = els.vehicleCountry.value;
+    const makeName = els.vehicleMakeSelect.value;
+    const modelIdx = els.vehicleModelSelect.value;
+    resetVehicleSelectFrom(4);
+    if (!countryName || !makeName || modelIdx === "") return;
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let y = currentYear; y >= 2012; y--) years.push(y);
+    fillSelect(els.vehicleYearSelect, years.map(y => ({ value: String(y), label: String(y) })), "— Он сонгох —");
+    els.vehicleYearSelect.disabled = false;
+  }
+
+  function onVehicleYearChange() {
+    const countryName = els.vehicleCountry.value;
+    const makeName = els.vehicleMakeSelect.value;
+    const modelIdx = els.vehicleModelSelect.value;
+    const year = els.vehicleYearSelect.value;
+    if (!countryName || !makeName || modelIdx === "" || !year) {
+      selectedVehicleInfo = null;
+      els.vehicleConnectorPreview.hidden = true;
+      els.saveVehicleButton.disabled = true;
+      return;
+    }
+    const modelEntry = VEHICLE_DB[countryName].makes[makeName][Number(modelIdx)];
+    selectedVehicleInfo = buildVehicleInfo(countryName, makeName, modelEntry, Number(year));
+
+    const acLabel = connectorLabel(selectedVehicleInfo.acConnector);
+    const dcLabel = selectedVehicleInfo.dcConnector ? connectorLabel(selectedVehicleInfo.dcConnector) : "дэмждэггүй";
+    els.vehicleConnectorPreview.hidden = false;
+    els.vehicleConnectorPreview.innerHTML =
+      `<strong>Тооцоолсон connector:</strong> AC — ${acLabel}, DC — ${dcLabel}. Ойролцоо дээд чадал: ${selectedVehicleInfo.maxPowerKw} kW.`;
+    els.saveVehicleButton.disabled = false;
+  }
+
+  function restoreVehicleSelection(vehicle) {
+    if (!vehicle || !vehicle.country || !vehicle.make || !vehicle.model) return;
+    const country = VEHICLE_DB[vehicle.country];
+    if (!country || !country.makes[vehicle.make]) return;
+    els.vehicleCountry.value = vehicle.country;
+    onVehicleCountryChange();
+    els.vehicleMakeSelect.value = vehicle.make;
+    onVehicleMakeChange();
+    const models = country.makes[vehicle.make];
+    const modelIdx = models.findIndex(m => m[0] === vehicle.model);
+    if (modelIdx === -1) return;
+    els.vehicleModelSelect.value = String(modelIdx);
+    onVehicleModelChange();
+    if (vehicle.year) {
+      els.vehicleYearSelect.value = String(vehicle.year);
+      onVehicleYearChange();
+    }
+  }
+
+
+  // ---------------------------------------------------------------------------
   // Pure compatibility engine.
   //
   // Rules:
@@ -1310,13 +1458,21 @@
       return result(CompatibilityState.UNKNOWN, null, "Машин эсвэл цэнэглэгчийн мэдээлэл дутуу.");
     }
 
-    const vc = vehicle.connector;
-    const vm = vehicle.mode;
-    const pc = port.connector;
     const pm = port.mode;
+    const pc = port.connector;
+    const vc = pm === "AC" ? vehicle.acConnector : vehicle.dcConnector;
+    const vAdapterId = pm === "AC" ? vehicle.acAdapterId : vehicle.dcAdapterId;
 
-    if (!vc || !vm || !pc || !pm) {
-      return result(CompatibilityState.UNKNOWN, null, "Connector эсвэл AC/DC төрөл тодорхойгүй.");
+    if (!pm || !pc) {
+      return result(CompatibilityState.UNKNOWN, null, "Цэнэглэгчийн мэдээлэл дутуу.");
+    }
+
+    if (!vc) {
+      return result(
+        CompatibilityState.INCOMPATIBLE,
+        null,
+        pm === "DC" ? "Таны машин DC хурдан цэнэглэлт дэмждэггүй." : "Таны машин AC цэнэглэлт дэмждэггүй."
+      );
     }
 
     if (vc === "GBT" || pc === "GBT") {
@@ -1327,10 +1483,6 @@
       return result(CompatibilityState.UNKNOWN, estimatePower(vehicle, port), "Протокол/хүчдэлийн мэдээлэл бүрэн баталгаажаагүй.");
     }
 
-    if (vm !== pm) {
-      return result(CompatibilityState.INCOMPATIBLE, null, "AC/DC цэнэглэх горим зөрчилдөж байна.");
-    }
-
     if (vc === pc) {
       return result(
         CompatibilityState.DIRECT,
@@ -1339,12 +1491,12 @@
       );
     }
 
-    const adapter = vehicle.adapterId ? VERIFIED_ADAPTERS[vehicle.adapterId] : null;
+    const adapter = vAdapterId ? VERIFIED_ADAPTERS[vAdapterId] : null;
     if (adapter && adapter.mode === pm && adapter.from === pc && adapter.to === vc) {
       return result(
         CompatibilityState.ADAPTER_REQUIRED,
         estimatePower(vehicle, port),
-        "Сонгосон баталгаатай адаптер шаардлагатай."
+        "Адаптер ашиглан холбож болно (тооцоолсон)."
       );
     }
 
@@ -1416,6 +1568,12 @@
     stationList: document.getElementById("stationList"),
     listSubtitle: document.getElementById("listSubtitle"),
     vehicleForm: document.getElementById("vehicleForm"),
+    vehicleCountry: document.getElementById("vehicleCountry"),
+    vehicleMakeSelect: document.getElementById("vehicleMakeSelect"),
+    vehicleModelSelect: document.getElementById("vehicleModelSelect"),
+    vehicleYearSelect: document.getElementById("vehicleYearSelect"),
+    vehicleConnectorPreview: document.getElementById("vehicleConnectorPreview"),
+    saveVehicleButton: document.getElementById("saveVehicleButton"),
     clearVehicleButton: document.getElementById("clearVehicleButton"),
     reportForm: document.getElementById("reportForm"),
     reportStation: document.getElementById("reportStation"),
@@ -1733,13 +1891,7 @@
     els.vehicleButton.classList.toggle("has-vehicle", !!state.vehicle);
 
     if (state.vehicle) {
-      document.getElementById("vehicleMake").value = state.vehicle.make || "";
-      document.getElementById("vehicleModel").value = state.vehicle.model || "";
-      document.getElementById("vehicleMode").value = state.vehicle.mode || "DC";
-      document.getElementById("vehicleMaxPower").value = state.vehicle.maxPowerKw || "";
-      document.getElementById("vehicleAdapter").value = state.vehicle.adapterId || "";
-      const radio = document.querySelector(`input[name="connector"][value="${CSS.escape(state.vehicle.connector || "")}"]`);
-      if (radio) radio.checked = true;
+      restoreVehicleSelection(state.vehicle);
     }
   }
 
@@ -1811,17 +1963,15 @@
   els.modalBackdrop.addEventListener("click", closeModals);
   document.querySelectorAll("[data-close-modal]").forEach(btn => btn.addEventListener("click", closeModals));
 
+  els.vehicleCountry.addEventListener("change", onVehicleCountryChange);
+  els.vehicleMakeSelect.addEventListener("change", onVehicleMakeChange);
+  els.vehicleModelSelect.addEventListener("change", onVehicleModelChange);
+  els.vehicleYearSelect.addEventListener("change", onVehicleYearChange);
+
   els.vehicleForm.addEventListener("submit", e => {
     e.preventDefault();
-    const connector = document.querySelector('input[name="connector"]:checked')?.value || null;
-    const vehicle = {
-      make: document.getElementById("vehicleMake").value.trim(),
-      model: document.getElementById("vehicleModel").value.trim(),
-      connector,
-      mode: document.getElementById("vehicleMode").value,
-      maxPowerKw: Number(document.getElementById("vehicleMaxPower").value) || null,
-      adapterId: document.getElementById("vehicleAdapter").value || null
-    };
+    if (!selectedVehicleInfo) return;
+    const vehicle = { ...selectedVehicleInfo };
     saveVehicle(vehicle);
     closeModals();
 
@@ -1906,6 +2056,7 @@
 
   // Initial state. Хэрэв өмнө нь машин хадгалсан бол шууд "Надад тохирно" filter-оор эхлэнэ.
   populateReportStations(null);
+  populateVehicleCountries();
   syncVehicleUI();
   setActiveFilter(state.vehicle ? "COMPATIBLE" : "ALL");
   initMap();
