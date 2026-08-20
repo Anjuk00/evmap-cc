@@ -1,0 +1,58 @@
+name: Sync ChargeX live status
+
+# ChargeX-ийн /open-api/parks endpoint нь зөвхөн chargex.mn домэйноос ирсэн
+# хүсэлтэд 200 буцаадаг тул (бусад домэйноос 503) evmap.cc сайтаас шууд
+# client-side fetch хийх боломжгүй. Иймд энд server-side тогтмол татаж, ижил
+# origin руу static snapshot committ хийж, сайт өөрөө уншина.
+#
+# Ирээдүйд өөр open API-тай сүлжээ нэмэхэд энд ижил төрлийн step нэмээд,
+# index.html-ийн LIVE_PROVIDERS-д харгалзах provider нэмнэ.
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: chargex-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch ChargeX parks snapshot
+        run: |
+          mkdir -p data/live
+          curl -sf "https://api.chargex.mn/ev/v1/open-api/parks" -o /tmp/chargex_parks.json
+
+      - name: Stamp fetch time and write snapshot
+        run: |
+          python3 - <<'PY'
+          import json, datetime
+          with open('/tmp/chargex_parks.json', encoding='utf-8') as f:
+              data = json.load(f)
+          data['_meta'] = {
+              'fetchedAt': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.000Z'),
+              'source': 'https://api.chargex.mn/ev/v1/open-api/parks'
+          }
+          with open('data/live/chargex.json', 'w', encoding='utf-8') as f:
+              json.dump(data, f, ensure_ascii=False, separators=(',', ':'))
+          PY
+
+      - name: Commit snapshot if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/live/chargex.json
+          if git diff --cached --quiet; then
+            echo "No change in ChargeX snapshot, skipping commit."
+          else
+            git commit -m "Sync ChargeX live status [auto]"
+            git push
+          fi
